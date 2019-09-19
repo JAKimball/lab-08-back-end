@@ -35,11 +35,7 @@ function getLocation(request, response) {
       const location = new Location(queryStr, body);
       response.status(200).send(location);
     })
-    .catch(err => {
-      const error = new Error(err);
-      console.error(err);
-      response.status(error.status).send(error.responseText);
-    });
+    .catch(err => handleError(err, response));
 }
 
 function getWeather(request, response) {
@@ -55,11 +51,7 @@ function getWeather(request, response) {
 
       response.status(200).send(forecast.days);
     })
-    .catch(err => {
-      const error = new Error(err);
-      console.error(err);
-      response.status(error.status).send(error.responseText);
-    });
+    .catch(err => handleError(err, response));
 }
 
 function getEvents(request, response) {
@@ -73,11 +65,7 @@ function getEvents(request, response) {
       const events = data.body.events.map(obj => new Event(obj));
       response.status(200).send(events);
     })
-    .catch(err => {
-      const error = new Error(err);
-      console.error(err);
-      response.status(error.status).send(error.responseText);
-    });
+    .catch(err => handleError(err, response));
 }
 
 function wildcardRouter(request, response) {
@@ -121,8 +109,14 @@ function Event(obj) {
 
 function Error(err) {
   this.status = 500;
-  this.responseText = 'Sorry, something went wrong.';
+  this.responseText = 'Sorry, something went wrong. ' + JSON.stringify(err);
   this.error = err;
+}
+
+function handleError(err, response) {
+  console.error(err);
+  const error = new Error(err);
+  response.status(error.status).send(error.responseText);
 }
 
 /**
