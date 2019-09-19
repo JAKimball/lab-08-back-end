@@ -70,16 +70,7 @@ function getEvents(request, response) {
 
   superagent.get(url)
     .then(data => {
-      const body = data.body;
-      const events = body.events.map(el => {
-        const link = el.url;
-        const name = el.name.text;
-        const eventDate = el.start.local;
-        const summary = el.summary;
-
-        return new Event(link, name, eventDate, summary);
-      });
-
+      const events = data.body.events.map(obj => new Event(obj));
       response.status(200).send(events);
     })
     .catch(err => {
@@ -121,11 +112,11 @@ function Forecast(searchQuery, weatherDataResults) {
   this.days = result;
 }
 
-function Event(link, name, eventDate, summary) {
-  this.link = link;
-  this.name = name;
-  this.eventDate = eventDate;
-  this.summary = summary;
+function Event(obj) {
+  this.link = obj.url;
+  this.name = obj.name.text;
+  this.event_date = obj.start.local;
+  this.summary = obj.summary;
 }
 
 function Error(err) {
