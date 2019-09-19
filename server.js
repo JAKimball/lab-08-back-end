@@ -38,6 +38,15 @@ function getLocation(request, response) {
     .catch(err => handleError(err, response));
 }
 
+function Location(searchQuery, geoDataResults) {
+  const results = geoDataResults.results[0];
+
+  this.search_query = searchQuery;
+  this.formatted_query = results.formatted_address;
+  this.latitude = results.geometry.location.lat;
+  this.longitude = results.geometry.location.lng;
+}
+
 function getWeather(request, response) {
   const searchQuery = request.query.data;
   const latitude = searchQuery.latitude;
@@ -52,37 +61,6 @@ function getWeather(request, response) {
       response.status(200).send(forecast.days);
     })
     .catch(err => handleError(err, response));
-}
-
-function getEvents(request, response) {
-  const searchQuery = request.query.data;
-  const latitude = searchQuery.latitude;
-  const longitude = searchQuery.longitude;
-  const url = `https://www.eventbriteapi.com/v3/events/search?location.longitude=${longitude}&location.latitude=${latitude}74&expand=venue&token=${process.env.EVENTBRITE_PUBLIC_TOKEN}`;
-
-  superagent.get(url)
-    .then(data => {
-      const events = data.body.events.map(obj => new Event(obj));
-      response.status(200).send(events);
-    })
-    .catch(err => handleError(err, response));
-}
-
-function wildcardRouter(request, response) {
-  response.status(500).send('Sorry, something went wrong');
-}
-
-/**
- * Constructors
- */
-
-function Location(searchQuery, geoDataResults) {
-  const results = geoDataResults.results[0];
-
-  this.search_query = searchQuery;
-  this.formatted_query = results.formatted_address;
-  this.latitude = results.geometry.location.lat;
-  this.longitude = results.geometry.location.lng;
 }
 
 function Forecast(searchQuery, weatherDataResults) {
@@ -100,12 +78,34 @@ function Forecast(searchQuery, weatherDataResults) {
   this.days = result;
 }
 
+function getEvents(request, response) {
+  const searchQuery = request.query.data;
+  const latitude = searchQuery.latitude;
+  const longitude = searchQuery.longitude;
+  const url = `https://www.eventbriteapi.com/v3/events/search?location.longitude=${longitude}&location.latitude=${latitude}74&expand=venue&token=${process.env.EVENTBRITE_PUBLIC_TOKEN}`;
+
+  superagent.get(url)
+    .then(data => {
+      const events = data.body.events.map(obj => new Event(obj));
+      response.status(200).send(events);
+    })
+    .catch(err => handleError(err, response));
+}
+
 function Event(obj) {
   this.link = obj.url;
   this.name = obj.name.text;
   this.event_date = obj.start.local;
   this.summary = obj.summary;
 }
+
+function wildcardRouter(request, response) {
+  response.status(500).send('Sorry, something went wrong');
+}
+
+/**
+ * Helper Objects and Functions
+ */
 
 function Error(err) {
   this.status = 500;
