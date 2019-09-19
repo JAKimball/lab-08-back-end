@@ -8,25 +8,49 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const superagent = require('superagent');
+const pg = require('pg');
 require('dotenv').config();
-
+const PORT = process.env.PORT || 3000;
 app.use(cors());
+
+const client = new pg.Client(process.env.DATABASE_URL);
+client.on('error', err => console.error(err));
 
 /**
  * Routes
  */
 
-app.get('/location', getLocation);
-app.get('/weather', getWeather);
-app.get('/events', getEvents);
+app.get('/location', routeLocation);
+// app.get('/weather', getWeather);
+// app.get('/events', getEvents);
 app.use('*', wildcardRouter);
 
 /**
  * Routers
  */
 
-function getLocation(request, response) {
+function routeLocation(request, response) {
   let queryStr = request.query.data;
+
+  const location = getLocation(queryStr, response);
+  // response.status(200).send(location);
+}
+
+function getLocation(queryStr, response) {
+  let sql = 'SELECT * FROM locations;';
+  let value = [queryStr];
+  console.log('BROKENNNNNNNNN');
+  client
+    .query(sql, value)
+    .then(pgResults => {
+      console.log('====================================================================================================================================================================================');
+      console.log('our pgResults', pgResults);
+      // response.status(200).json(pgResults);
+    })
+    .catch(err => handleError(err));
+}
+
+function googleLocation(queryStr, response){
   let url = `https://maps.googleapis.com/maps/api/geocode/json?address=${queryStr}&key=${process.env.GEOCODE_API_KEY}`;
 
   superagent.get(url)
@@ -107,6 +131,8 @@ function wildcardRouter(request, response) {
  * Helper Objects and Functions
  */
 
+
+
 function Error(err) {
   this.status = 500;
   this.responseText = 'Sorry, something went wrong. ' + JSON.stringify(err);
@@ -114,17 +140,15 @@ function Error(err) {
 }
 
 function handleError(err, response) {
+  console.log('ERRORE MESSAGE TO FOLOOOWWWWW')
   console.error(err);
+  console.log('ERRORE MESSAGE ENDDDDSSSSS')
   const error = new Error(err);
   response.status(error.status).send(error.responseText);
 }
 
-/**
- * PORT
- */
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`listening to ${PORT}`);
-});
+client.connect()
+  .then(() => {
+    app.listen(PORT, () => console.log(`listening on ${PORT}`))
+  })
+  .catch(error => handleError(error));

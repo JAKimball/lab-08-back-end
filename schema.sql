@@ -12,3 +12,5 @@ CREATE TABLE locations (
     latitude FLOAT,
     longitude FLOAT
 );
+
+INSERT INTO locations (searchQuery, latitude, longitude) VALUES ('seattle', 41.1, 41.1);
