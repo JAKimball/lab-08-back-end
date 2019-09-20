@@ -15,6 +15,11 @@ app.use(cors());
 
 const client = new pg.Client(process.env.DATABASE_URL);
 client.on('error', err => console.error(err));
+client.connect()
+  .then(() => {
+    app.listen(PORT, () => console.log(`listening on ${PORT}`));
+  })
+  .catch(error => handleError(error));
 
 /**
  * Routes
@@ -41,13 +46,13 @@ function getLocation(queryStr, response) {
   let value = [queryStr];
   console.log('BROKENNNNNNNNN');
   client
-    .query(sql, value)
+    .query(sql)
     .then(pgResults => {
       console.log('====================================================================================================================================================================================');
       console.log('our pgResults', pgResults);
       // response.status(200).json(pgResults);
     })
-    .catch(err => handleError(err));
+    .catch(err => handleError(err, response));
 }
 
 function googleLocation(queryStr, response){
@@ -131,8 +136,6 @@ function wildcardRouter(request, response) {
  * Helper Objects and Functions
  */
 
-
-
 function Error(err) {
   this.status = 500;
   this.responseText = 'Sorry, something went wrong. ' + JSON.stringify(err);
@@ -140,15 +143,12 @@ function Error(err) {
 }
 
 function handleError(err, response) {
-  console.log('ERRORE MESSAGE TO FOLOOOWWWWW')
+  console.log('ERRORE MESSAGE TO FOLOOOWWWWW');
   console.error(err);
-  console.log('ERRORE MESSAGE ENDDDDSSSSS')
+  console.log('ERRORE MESSAGE ENDDDDSSSSS');
   const error = new Error(err);
-  response.status(error.status).send(error.responseText);
+  if (response) {
+    response.status(error.status).send(error.responseText);
+  }
 }
 
-client.connect()
-  .then(() => {
-    app.listen(PORT, () => console.log(`listening on ${PORT}`))
-  })
-  .catch(error => handleError(error));
