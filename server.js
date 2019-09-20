@@ -26,8 +26,8 @@ client.connect()
  */
 
 app.get('/location', routeLocation);
-// app.get('/weather', getWeather);
-// app.get('/events', getEvents);
+app.get('/weather', getWeather);
+app.get('/events', getEvents);
 app.use('*', wildcardRouter);
 
 /**
@@ -41,7 +41,6 @@ function routeLocation(request, response) {
   if (!location) {
     location = newLocation(queryStr);
   }
-  const location = newLocation(queryStr, response);
   response.status(200).send(location);
 }
 
@@ -52,8 +51,9 @@ function locationFromDb(queryStr, response) {
   console.log('Sql: ', sql);
   console.log('Values: ', values);
   client
-    .query(sql)
+    .query(sql, values)
     .then(pgResults => {
+
       console.log('===========================');
       console.log('Row Count', pgResults.rowCount);
       if (pgResults.rowCount !== 0) {
@@ -88,14 +88,22 @@ function newLocation(searchQuery, response) {
         .then(response.status(200).send(location))
         .catch(error => handleError(error, response));
     })
+      .catch(err => handleError(err, response));
 }
 
-function Location(searchQuery, locationData) {
+function Location(searchQuery, formatted_address, lat, long) {
   this.search_query = searchQuery;
-  this.formatted_query = locationData.formatted_address;
-  this.latitude = locationData.geometry.location.lat;
-  this.longitude = locationData.geometry.location.lng;
+  this.formatted_address = formatted_address;
+  this.latitude = lat;
+  this.longitude = long;
 }
+
+// function Location(searchQuery, locationData) {
+//   this.search_query = searchQuery;
+//   this.formatted_query = locationData.formatted_address;
+//   this.latitude = locationData.geometry.location.lat;
+//   this.longitude = locationData.geometry.location.lng;
+// }
 
 function getWeather(request, response) {
   const searchQuery = request.query.data;
