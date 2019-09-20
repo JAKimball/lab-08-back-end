@@ -37,43 +37,64 @@ app.use('*', wildcardRouter);
 function routeLocation(request, response) {
   let queryStr = request.query.data;
 
-  const location = getLocation(queryStr, response);
-  // response.status(200).send(location);
+  const location = locationFromDb(queryStr);
+  if (!location) {
+    location = newLocation(queryStr);
+  }
+  const location = newLocation(queryStr, response);
+  response.status(200).send(location);
 }
 
-function getLocation(queryStr, response) {
-  let sql = 'SELECT * FROM locations;';
-  let value = [queryStr];
-  console.log('BROKENNNNNNNNN');
+function locationFromDb(queryStr, response) {
+  let sql = 'SELECT * FROM locations WHERE search_query = $1;';
+  queryStr = queryStr.toUpperCase();
+  let values = [queryStr];
+  console.log('Sql: ', sql);
+  console.log('Values: ', values);
   client
     .query(sql)
     .then(pgResults => {
-      console.log('====================================================================================================================================================================================');
-      console.log('our pgResults', pgResults);
-      // response.status(200).json(pgResults);
+      console.log('===========================');
+      console.log('Row Count', pgResults.rowCount);
+      if (pgResults.rowCount !== 0) {
+        console.log('first row:', pgResults.row[0]);
+      };
+
+      if (pgResults.rowCount === 0) {
+        return;
+      } else {
+        const row = pgResults.row[0];
+        return new Location(row.search_query, row.formatted_query, row.latitude row.longitude);
+      }
+
     })
     .catch(err => handleError(err, response));
 }
 
-function googleLocation(queryStr, response){
-  let url = `https://maps.googleapis.com/maps/api/geocode/json?address=${queryStr}&key=${process.env.GEOCODE_API_KEY}`;
+function newLocation(searchQuery, response) {
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${searchQuery}&key=${process.env.GEOCODE_API_KEY}`;
 
-  superagent.get(url)
-    .then(saResult => {
-      const body = saResult.body;
-      const location = new Location(queryStr, body);
-      response.status(200).send(location);
+  superagent
+    .get(url)
+    .then(result => {
+      const locationData = result.body.results[0];
+      const location = new Location(searchQuery, locationData);
+
+      const sql = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4);';
+      const value = [location.search_query, location.formatted_query, location.latitude, location.longitude];
+
+      client
+        .query(sql, value)
+        .then(response.status(200).send(location))
+        .catch(error => handleError(error, response));
     })
-    .catch(err => handleError(err, response));
 }
 
-function Location(searchQuery, geoDataResults) {
-  const results = geoDataResults.results[0];
-
+function Location(searchQuery, locationData) {
   this.search_query = searchQuery;
-  this.formatted_query = results.formatted_address;
-  this.latitude = results.geometry.location.lat;
-  this.longitude = results.geometry.location.lng;
+  this.formatted_query = locationData.formatted_address;
+  this.latitude = locationData.geometry.location.lat;
+  this.longitude = locationData.geometry.location.lng;
 }
 
 function getWeather(request, response) {
